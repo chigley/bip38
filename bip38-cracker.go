@@ -19,19 +19,19 @@ func main() {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
 	}
 
-	log.Printf("Decoded base58 string to %s (length %d)", hex.EncodeToString(dec), len(dec))
+	// log.Printf("Decoded base58 string to %s (length %d)", hex.EncodeToString(dec), len(dec))
 
 	if dec[0] == 0x01 && dec[1] == 0x42 {
 		log.Print("EC multiply mode not used")
 		log.Fatal("TODO: implement decryption when EC multiply mode not used")
 	} else if dec[0] == 0x01 && dec[1] == 0x43 {
-		log.Print("EC multiply mode used")
+		// log.Print("EC multiply mode used")
 
 		ownerSalt := dec[7:15]
 		hasLotSequence := dec[2]&0x04 == 0x04
 
-		log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
-		log.Printf("Has lot/sequence: %t", hasLotSequence)
+		// log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
+		// log.Printf("Has lot/sequence: %t", hasLotSequence)
 
 		prefactorA, err := scrypt.Key([]byte(passphrase), ownerSalt, 16384, 8, 8, 32)
 		if prefactorA == nil {
@@ -61,14 +61,14 @@ func main() {
 			passFactor = prefactorA
 		}
 
-		log.Printf("passfactor: %s (length %d)", hex.EncodeToString(passFactor), len(passFactor))
+		// log.Printf("passfactor: %s (length %d)", hex.EncodeToString(passFactor), len(passFactor))
 
 		passpoint, err := btc.PublicFromPrivate(passFactor, true)
 		if passpoint == nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("passpoint: %s", hex.EncodeToString(passpoint))
+		// log.Printf("passpoint: %s", hex.EncodeToString(passpoint))
 
 		encryptedpart1 := dec[15:23]
 		encryptedpart2 := dec[23:39]
@@ -80,11 +80,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Printf("derived: %s", hex.EncodeToString(derived))
-
 		derivedhalf2 := derived[32:]
-
-		log.Printf("derivedhalf2: %s", hex.EncodeToString(derivedhalf2))
 
 		h, err := aes.NewCipher(derivedhalf2)
 		if h == nil {
@@ -97,20 +93,13 @@ func main() {
 			unencryptedpart2[i] ^= derived[i+16]
 		}
 
-		log.Printf("unencryptedpart2: %s", hex.EncodeToString(unencryptedpart2))
-
 		encryptedpart1 = bytes.Join([][]byte{encryptedpart1, unencryptedpart2[:8]}, nil)
-
-		log.Printf("encryptedpart1: %s", hex.EncodeToString(encryptedpart1))
-		log.Printf("encryptedpart2: %s", hex.EncodeToString(encryptedpart2))
 
 		unencryptedpart1 := make([]byte, 16)
 		h.Decrypt(unencryptedpart1, encryptedpart1)
 		for i := range unencryptedpart1 {
 			unencryptedpart1[i] ^= derived[i]
 		}
-
-		log.Printf("unencryptedpart1: %s", hex.EncodeToString(unencryptedpart1))
 
 		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
 
@@ -121,6 +110,7 @@ func main() {
 		sha.Write(singleHashed)
 		factorb := sha.Sum(nil)
 
+		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
 		log.Printf("factorb: %s", hex.EncodeToString(factorb))
 
 		// passFactorBig := btc.NewUint256(passFactor).BigInt()
