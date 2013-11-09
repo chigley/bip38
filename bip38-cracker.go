@@ -104,6 +104,15 @@ func main() {
 		}
 
 		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
+
+		sha := sha256.New()
+		sha.Write(seeddb)
+		singleHashed := sha.Sum(nil)
+		sha.Reset()
+		sha.Write(singleHashed)
+		factorb := sha.Sum(nil)
+
+		log.Printf("factorb: %s", hex.EncodeToString(factorb))
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
