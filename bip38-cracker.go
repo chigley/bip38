@@ -61,7 +61,7 @@ func main() {
 			passFactor = prefactorA
 		}
 
-		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
+		log.Printf("passfactor: %s (length %d)", hex.EncodeToString(passFactor), len(passFactor))
 
 		passpoint, err := btc.PublicFromPrivate(passFactor, true)
 		if passpoint == nil {
@@ -80,7 +80,11 @@ func main() {
 			log.Fatal(err)
 		}
 
+		log.Printf("derived: %s", hex.EncodeToString(derived))
+
 		derivedhalf2 := derived[32:]
+
+		log.Printf("derivedhalf2: %s", hex.EncodeToString(derivedhalf2))
 
 		h, err := aes.NewCipher(derivedhalf2)
 		if h == nil {
@@ -94,14 +98,21 @@ func main() {
 			unencryptedpart2[i] ^= derived[i+16]
 		}
 
+		log.Printf("unencryptedpart2: %s", hex.EncodeToString(unencryptedpart2))
+
 		encryptedpart1 = bytes.Join([][]byte{encryptedpart1, unencryptedpart2[:8]}, nil)
 
+		log.Printf("encryptedpart1: %s", hex.EncodeToString(encryptedpart1))
+		log.Printf("encryptedpart2: %s", hex.EncodeToString(encryptedpart2))
+
 		unencryptedpart1 := make([]byte, 16)
-		h.Decrypt(unencryptedpart1, encryptedpart2)
+		h.Decrypt(unencryptedpart1, encryptedpart1)
 		h.Decrypt(unencryptedpart2, encryptedpart1) // TODO: necessary?
 		for i := range unencryptedpart1 {
 			unencryptedpart1[i] ^= derived[i]
 		}
+
+		log.Printf("unencryptedpart1: %s", hex.EncodeToString(unencryptedpart1))
 
 		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
 
@@ -113,6 +124,9 @@ func main() {
 		factorb := sha.Sum(nil)
 
 		log.Printf("factorb: %s", hex.EncodeToString(factorb))
+
+		// passFactorBig := btc.NewUint256(passFactor).BigInt()
+		// factorbBig := btc.NewUint256(factorb).BigInt()
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
