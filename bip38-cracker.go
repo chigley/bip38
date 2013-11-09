@@ -93,7 +93,6 @@ func main() {
 
 		unencryptedpart2 := make([]byte, 16)
 		h.Decrypt(unencryptedpart2, encryptedpart2)
-		h.Decrypt(unencryptedpart2, encryptedpart2) // TODO: necessary?
 		for i := range unencryptedpart2 {
 			unencryptedpart2[i] ^= derived[i+16]
 		}
@@ -107,7 +106,6 @@ func main() {
 
 		unencryptedpart1 := make([]byte, 16)
 		h.Decrypt(unencryptedpart1, encryptedpart1)
-		h.Decrypt(unencryptedpart1, encryptedpart1) // TODO: necessary?
 		for i := range unencryptedpart1 {
 			unencryptedpart1[i] ^= derived[i]
 		}
