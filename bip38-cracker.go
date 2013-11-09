@@ -8,11 +8,12 @@ import (
 	"encoding/hex"
 	"github.com/piotrnar/gocoin/btc"
 	"log"
+	"math/big"
 )
 
 func main() {
-	encryptedKey := "6PfMxA1n3cqYarHoDqPRPLpBBJGWLDY1qX94z8Qyjg7XAMNZJMvHLqAMyS"
-	passphrase := "AaAaB"
+	encryptedKey := "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd"
+	passphrase := "Satoshi"
 
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
@@ -113,8 +114,39 @@ func main() {
 		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
 		log.Printf("factorb: %s", hex.EncodeToString(factorb))
 
+		// passfactor * factorb mod N
+
+		bigN, _ := new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
 		// passFactorBig := btc.NewUint256(passFactor).BigInt()
 		// factorbBig := btc.NewUint256(factorb).BigInt()
+
+		passFactorBig := new(big.Int).SetBytes(passFactor)
+		factorbBig := new(big.Int).SetBytes(factorb)
+
+		privKey := new(big.Int)
+		privKey.Mul(passFactorBig, factorbBig)
+		privKey.Mod(privKey, bigN)
+
+		pubKey, err := btc.PublicFromPrivate(privKey.Bytes(), false)
+		if pubKey == nil {
+			log.Fatal(err)
+		}
+
+		addr := btc.NewAddrFromPubkey(pubKey, 0).String()
+
+		sha.Reset()
+		sha.Write([]byte(addr))
+		singleHashed = sha.Sum(nil)
+		sha.Reset()
+		sha.Write(singleHashed)
+		addrHashed := sha.Sum(nil)
+
+		if addrHashed[0] != dec[3] || addrHashed[1] != dec[4] || addrHashed[2] != dec[5] || addrHashed[3] != dec[6] {
+			log.Fatal("Wrong passphrase!")
+		}
+
+		log.Printf("Address: %s", addr)
+		log.Printf("Private key: %s", hex.EncodeToString(privKey.Bytes()))
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
