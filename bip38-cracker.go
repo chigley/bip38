@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	encryptedKey := "6PgGWtx25kUg8QWvwuJAgorN6k9FbE25rv5dMRwu5SKMnfpfVe5mar2ngH"
-	passphrase := "ΜΟΛΩΝ ΛΑΒΕ"
+	encryptedKey := "6PfMxA1n3cqYarHoDqPRPLpBBJGWLDY1qX94z8Qyjg7XAMNZJMvHLqAMyS"
+	passphrase := "AaAaB"
 
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
@@ -61,6 +61,13 @@ func main() {
 		}
 
 		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
+
+		passpoint, err := btc.PublicFromPrivate(passFactor, true)
+		if passpoint == nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("passpoint: %s", hex.EncodeToString(passpoint))
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
