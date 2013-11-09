@@ -11,7 +11,7 @@ I'm writing this primarily as an exercise to learn Go, and also to learn more ab
 TODO
 ----
 
-* Complete basic implementation
+* Fix lot/sequence passFactor calculation
 * Remove gocoin dependency (currently only used for base58 decoding and passpoint calculation)
 * Multi-threaded brute forcer
 
