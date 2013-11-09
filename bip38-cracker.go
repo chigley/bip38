@@ -17,11 +17,16 @@ func main() {
 	log.Printf("Decoded base58 string to %s (length %d)", hex.EncodeToString(dec), len(dec))
 
 	if dec[0] == 0x01 && dec[1] == 0x42 {
-		log.Printf("EC multiply mode not used")
+		log.Print("EC multiply mode not used")
 
 	} else if dec[0] == 0x01 && dec[1] == 0x43 {
-		log.Printf("EC multiply mode used")
+		log.Print("EC multiply mode used")
 
+		ownerSalt := dec[7:15]
+		includeHashStep := dec[2]&0x04 == 0x04
+
+		log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
+		log.Printf("Include hash step: %t", includeHashStep)
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
