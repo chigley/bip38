@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"code.google.com/p/go.crypto/scrypt"
+	"crypto/aes"
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/piotrnar/gocoin/btc"
@@ -68,6 +69,41 @@ func main() {
 		}
 
 		log.Printf("passpoint: %s", hex.EncodeToString(passpoint))
+
+		encryptedpart1 := dec[15:23]
+		encryptedpart2 := dec[23:39]
+
+		addresshashplusownerentropy := bytes.Join([][]byte{dec[3:7], ownerSalt[:8]}, nil)
+
+		derived, err := scrypt.Key(passpoint, addresshashplusownerentropy, 1024, 1, 1, 64)
+		if derived == nil {
+			log.Fatal(err)
+		}
+
+		derivedhalf2 := derived[32:]
+
+		h, err := aes.NewCipher(derivedhalf2)
+		if h == nil {
+			log.Fatal(err)
+		}
+
+		unencryptedpart2 := make([]byte, 16)
+		h.Decrypt(unencryptedpart2, encryptedpart2)
+		h.Decrypt(unencryptedpart2, encryptedpart2) // TODO: necessary?
+		for i := range unencryptedpart2 {
+			unencryptedpart2[i] ^= derived[i+16]
+		}
+
+		encryptedpart1 = bytes.Join([][]byte{encryptedpart1, unencryptedpart2[:8]}, nil)
+
+		unencryptedpart1 := make([]byte, 16)
+		h.Decrypt(unencryptedpart1, encryptedpart2)
+		h.Decrypt(unencryptedpart2, encryptedpart1) // TODO: necessary?
+		for i := range unencryptedpart1 {
+			unencryptedpart1[i] ^= derived[i]
+		}
+
+		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
