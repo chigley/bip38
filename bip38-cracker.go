@@ -11,7 +11,7 @@ import (
 
 func main() {
 	encryptedKey := "6PgGWtx25kUg8QWvwuJAgorN6k9FbE25rv5dMRwu5SKMnfpfVe5mar2ngH"
-	passphrase := ""
+	passphrase := "ΜΟΛΩΝ ΛΑΒΕ"
 
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
@@ -30,7 +30,7 @@ func main() {
 		hasLotSequence := dec[2]&0x04 == 0x04
 
 		log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
-		log.Printf("Has lot sequence: %t", hasLotSequence)
+		log.Printf("Has lot/sequence: %t", hasLotSequence)
 
 		prefactorA, err := scrypt.Key([]byte(passphrase), ownerSalt, 16384, 8, 8, 32)
 		if prefactorA == nil {
@@ -50,11 +50,17 @@ func main() {
 			doubleHashed := h.Sum(nil)
 
 			passFactor = doubleHashed
+
+			lotNumber := int(ownerSalt[4])*4096 + int(ownerSalt[5])*16 + int(ownerSalt[6])/16
+			sequenceNumber := int(ownerSalt[6]&0x0f)*256 + int(ownerSalt[7])
+
+			log.Printf("Lot number: %d", lotNumber)
+			log.Printf("Sequence number: %d", sequenceNumber)
 		} else {
 			passFactor = prefactorA
 		}
 
-		log.Print(passFactor)
+		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
 	} else {
 		log.Fatal("Malformed byte slice")
 	}
