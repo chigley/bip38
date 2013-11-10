@@ -11,8 +11,9 @@ I'm writing this primarily as an exercise to learn Go, and also to learn more ab
 TODO
 ----
 
-* Fix lot/sequence passFactor calculation
 * Remove gocoin dependency (currently only used for base58 decoding and passpoint calculation)
+* Move to package of its own rather than being in main package
+* Write tests for BIP 0038 implementation at the very least
 
 See also
 --------
