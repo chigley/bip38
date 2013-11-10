@@ -28,15 +28,9 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
 	}
 
-	// log.Printf("Decoded base58 string to %s (length %d)", hex.EncodeToString(dec), len(dec))
-
 	if dec[0] == 0x01 && dec[1] == 0x42 {
-		// log.Print("EC multiply mode not used")
-
 		log.Fatal("TODO: implement decryption when EC multiply mode not used")
 	} else if dec[0] == 0x01 && dec[1] == 0x43 {
-		// log.Print("EC multiply mode used")
-
 		compress := dec[2]&0x20 == 0x20
 		hasLotSequence := dec[2]&0x04 == 0x04
 
@@ -49,37 +43,23 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 			ownerEntropy = ownerSalt
 		}
 
-		// log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
-		// log.Printf("Has lot/sequence: %t", hasLotSequence)
-		// log.Printf("Compress: %t", compress)
-
 		prefactorA, err := scrypt.Key([]byte(passphrase), ownerSalt, 16384, 8, 8, 32)
 		if prefactorA == nil {
 			log.Fatal(err)
 		}
 
 		var passFactor []byte
-
 		if hasLotSequence {
-			// lotNumber := int(ownerSalt[4])*4096 + int(ownerSalt[5])*16 + int(ownerSalt[6])/16
-			// sequenceNumber := int(ownerSalt[6]&0x0f)*256 + int(ownerSalt[7])
-			// log.Printf("Lot number: %d", lotNumber)
-			// log.Printf("Sequence number: %d", sequenceNumber)
-
 			prefactorB := bytes.Join([][]byte{prefactorA, ownerEntropy}, nil)
 			passFactor = sha256Twice(prefactorB)
 		} else {
 			passFactor = prefactorA
 		}
 
-		// log.Printf("passfactor: %s (length %d)", hex.EncodeToString(passFactor), len(passFactor))
-
 		passpoint, err := btc.PublicFromPrivate(passFactor, true)
 		if passpoint == nil {
 			log.Fatal(err)
 		}
-
-		// log.Printf("passpoint: %s", hex.EncodeToString(passpoint))
 
 		encryptedpart1 := dec[15:23]
 		encryptedpart2 := dec[23:39]
@@ -109,11 +89,7 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		}
 
 		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
-
 		factorb := sha256Twice(seeddb)
-
-		// log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
-		// log.Printf("factorb: %s", hex.EncodeToString(factorb))
 
 		bigN, success := new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
 		if !success {
@@ -142,6 +118,7 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 
 		log.Printf("Address: %s", addr)
 		log.Printf("Private key: %s", hex.EncodeToString(privKey.Bytes()))
+		log.Printf("Passphrase was: %s", passphrase)
 		return true
 	}
 
@@ -159,7 +136,6 @@ func searchRange(start int, finish int, encryptedKey string, charset string, c c
 				if start <= i {
 					guess := string(rune1) + string(rune2) + string(rune3)
 
-					// log.Printf("Trying %s", guess)
 					if verifyPassphrase(encryptedKey, guess) {
 						c <- "Found!"
 					}
@@ -170,7 +146,6 @@ func searchRange(start int, finish int, encryptedKey string, charset string, c c
 
 					totalTried++
 				} else if i == finish {
-					// Not found within this range - bail.
 					return
 				}
 
@@ -207,10 +182,6 @@ func main() {
 
 	spaceSize := int(math.Pow(float64(len(charset)), float64(length)))
 	blockSize := spaceSize / routines
-
-	log.Printf("Routines: %d", routines)
-	log.Printf("Space size: %d", spaceSize)
-	log.Printf("Block size: %d", blockSize)
 
 	c := make(chan string)
 
