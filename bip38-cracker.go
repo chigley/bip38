@@ -22,7 +22,7 @@ func sha256Twice(b []byte) []byte {
 	return h.Sum(nil)
 }
 
-func verifyPassphrase(encryptedKey string, passphrase string) bool {
+func decryptWithPassphrase(encryptedKey string, passphrase string) bool {
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
@@ -136,7 +136,7 @@ func searchRange(start int, finish int, encryptedKey string, charset string, c c
 				if start <= i {
 					guess := string(rune1) + string(rune2) + string(rune3)
 
-					if verifyPassphrase(encryptedKey, guess) {
+					if decryptWithPassphrase(encryptedKey, guess) {
 						c <- "Found!"
 					}
 
