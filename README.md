@@ -1,7 +1,7 @@
 bip38
 =====
 
-Incomplete [BIP 0038](https://en.bitcoin.it/wiki/BIP_0038) implementation and cracker written in Go. Attempts to brute force Bitcoin private keys that have been passphrase-protected with BIP 0038. Currently hardcoded for a passphrase length of 3 characters. Written to attempt puzzles such as:
+Partial [BIP 0038](https://en.bitcoin.it/wiki/BIP_0038) implementation and cracker written in Go. Exported functions are `DecryptWithPassphrase` and `Brute`. The former decrypts a BIP 0038-encrypted private key given the passphrase, returning the private key in a hex string, or the empty string on failure. `Brute` attempts to brute force a Bitcoin private key that has been passphrase-protected with BIP 0038 (currently hardcoded for a passphrase length of 3 characters - see TODO below). Designed to attempt puzzles such as:
 
 * http://www.reddit.com/r/Bitcoin/comments/1q5wu7/this_paper_wallet_contains_01125_btc_and_is_bip/
 * https://bitcointalk.org/index.php?topic=128699.0
@@ -11,11 +11,19 @@ I'm writing this primarily as an exercise to learn Go, and also to learn more ab
 TODO
 ----
 
-* Remove gocoin dependency (currently only used for base58 decoding and passpoint calculation)
-* Catch panic case when all goroutines return without finding the passphrase
+* Remove gocoin dependency (currently only used for base58 decoding, and passpoint & address calculation)
+* Catch panic case when all goroutines return without finding the passphrase (i.e. brute force failure)
 * Optimise searchRange when not starting at 0, and add in support for variable-length passphrases
+* Proper support for brute forcing over a given character set, rather than a hardcoded value
 * Implement decryption when EC multiply mode not used (and write tests)
-* Add a note about GOMAXPROCS and the routines parameter
+* Add proper doc comments to code
+
+Note about cracking
+-------------------
+
+The first argument to `Brute` is an integer number of goroutines to call while attempting the brute force search. For best results, set this to the number of cores you have available on your machine. Also make sure you set the `GOMAXPROCS` environment variable to this value before compiling! Otherwise your program will only run on a single core (by default), regardless of what you set `routines` to.
+
+On my quad-core Intel i5-2500K, I get speeds of about 10 keys/second when brute forcing a 3 character passphrase over the printable ASCII characters.
 
 Example
 -------
