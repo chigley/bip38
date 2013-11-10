@@ -11,6 +11,15 @@ import (
 	"math/big"
 )
 
+func sha256Twice(b []byte) []byte {
+	h := sha256.New()
+	h.Write(b)
+	hashedOnce := h.Sum(nil)
+	h.Reset()
+	h.Write(hashedOnce)
+	return h.Sum(nil)
+}
+
 func main() {
 	encryptedKey := "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd"
 	passphrase := "Satoshi"
@@ -44,14 +53,7 @@ func main() {
 		if hasLotSequence {
 			prefactorB := bytes.Join([][]byte{prefactorA, ownerSalt}, nil)
 
-			h := sha256.New()
-			h.Write(prefactorB)
-			singleHashed := h.Sum(nil)
-			h.Reset()
-			h.Write(singleHashed)
-			doubleHashed := h.Sum(nil)
-
-			passFactor = doubleHashed
+			passFactor = sha256Twice(prefactorB)
 
 			lotNumber := int(ownerSalt[4])*4096 + int(ownerSalt[5])*16 + int(ownerSalt[6])/16
 			sequenceNumber := int(ownerSalt[6]&0x0f)*256 + int(ownerSalt[7])
@@ -104,12 +106,7 @@ func main() {
 
 		seeddb := bytes.Join([][]byte{unencryptedpart1[:16], unencryptedpart2[8:]}, nil)
 
-		sha := sha256.New()
-		sha.Write(seeddb)
-		singleHashed := sha.Sum(nil)
-		sha.Reset()
-		sha.Write(singleHashed)
-		factorb := sha.Sum(nil)
+		factorb := sha256Twice(seeddb)
 
 		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
 		log.Printf("factorb: %s", hex.EncodeToString(factorb))
@@ -133,12 +130,7 @@ func main() {
 
 		addr := btc.NewAddrFromPubkey(pubKey, 0).String()
 
-		sha.Reset()
-		sha.Write([]byte(addr))
-		singleHashed = sha.Sum(nil)
-		sha.Reset()
-		sha.Write(singleHashed)
-		addrHashed := sha.Sum(nil)
+		addrHashed := sha256Twice([]byte(addr))
 
 		if addrHashed[0] != dec[3] || addrHashed[1] != dec[4] || addrHashed[2] != dec[5] || addrHashed[3] != dec[6] {
 			log.Fatal("Wrong passphrase!")
