@@ -6,8 +6,10 @@ import (
 	"crypto/aes"
 	"crypto/sha256"
 	"encoding/hex"
+	"flag"
 	"github.com/piotrnar/gocoin/btc"
 	"log"
+	"math"
 	"math/big"
 )
 
@@ -139,31 +141,80 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 	return false
 }
 
-func main() {
-	// what about unicode.PrintRanges?
+var totalTried = 0
 
-	//printableAscii := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
-	//printableAscii := "ÿþýüûúùø÷öõôóòñðïîíìëêéèçæåäãâáàßÞÝÜÛÚÙØ×ÖÕÔÓÒÑÐÏÎÍÌËÊÉÈÇÆÅÄÃÂÁÀ¿¾½¼»º¹¸·¶µ´³²±°¯®­¬«ª©¨§¦¥¤£¢¡ Ÿžœ›š™˜—–•”“’‘ŽŒ‹Š‰ˆ‡†…„ƒ‚€~}|{zyxwvutsrqponmlkjihgfedcba`_^]\\[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-,+*)('&%$#\"! "
-	printableAscii := "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-	//printableAscii := "ÿþýüûúùø÷öõôóòñðïîíìëêéèçæåäãâáàßÞÝÜÛÚÙØ×ÖÕÔÓÒÑÐÏÎÍÌËÊÉÈÇÆÅÄÃÂÁÀ¿¾½¼»º¹¸·¶µ´³²±°¯®­¬«ª©¨§¦¥¤£¢¡ Ÿžœ›š™˜—–•”“’‘ŽŒ‹Š‰ˆ‡†…„ƒ‚€~}|{zyxwvutsrqponmlkjihgfedcba`_^]\\[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-,+*)('&%$#\"! "
-	numTried := 0
+func searchRange(start int, finish int, encryptedKey string, charset string, c chan string) {
+	i := 0
+	for _, rune1 := range charset {
+		for _, rune2 := range charset {
+			for _, rune3 := range charset {
+				if start <= i {
+					guess := string(rune1) + string(rune2) + string(rune3)
 
-	// assumes 3 characters, for http://www.reddit.com/r/Bitcoin/comments/1q5wu7/this_paper_wallet_contains_01125_btc_and_is_bip/
-	for _, rune1 := range printableAscii {
-		for _, rune2 := range printableAscii {
-			for _, rune3 := range printableAscii {
-				guess := string(rune1) + string(rune2) + string(rune3)
+					log.Printf("Trying %s", guess)
+					if verifyPassphrase(encryptedKey, guess) {
+						c <- "Found!"
+					}
 
-				if verifyPassphrase("6PfYU8C5sLGsjDNWsCHRYD6G5noFmc184Q4owtnfvXrUdpsfNkeTq2HDV8", guess) {
+					if totalTried%10 == 0 {
+						log.Printf("%d passphrases tried", totalTried)
+					}
+
+					totalTried++
+				} else if i == finish {
+					// Not found within this range - bail.
 					return
 				}
 
-				if numTried%10 == 0 {
-					log.Printf("%d passphrases tried", numTried)
-				}
-
-				numTried++
+				i++
 			}
 		}
 	}
+}
+
+func main() {
+	var routines int
+	flag.IntVar(&routines, "routines", 1, "number of goroutines to spawn")
+	flag.Parse()
+
+	encryptedKey := flag.Arg(0)
+
+	length := 3 // Length of passphrase, hardcoded for now...
+
+	if encryptedKey == "" {
+		log.Fatal("encryptedKey required")
+	}
+
+	if routines < 1 {
+		log.Fatal("routines must be >= 1")
+	}
+
+	if length < 1 {
+		log.Fatal("length must be >= 1")
+	}
+
+	// charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
+	charset := "0123456789"
+
+	spaceSize := int(math.Pow(float64(len(charset)), float64(length)))
+	blockSize := spaceSize / routines
+
+	log.Printf("Routines: %d", routines)
+	log.Printf("Space size: %d", spaceSize)
+	log.Printf("Block size: %d", blockSize)
+
+	c := make(chan string)
+
+	for i := 0; i < routines; i++ {
+		var finish int
+		if i == routines-1 {
+			// Last block needs to go right to the end of the search space
+			finish = spaceSize
+		} else {
+			finish = i*blockSize + blockSize
+		}
+		go searchRange(i*blockSize, finish, flag.Arg(0), charset, c)
+	}
+
+	<-c
 }
