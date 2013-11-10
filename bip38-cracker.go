@@ -143,7 +143,27 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 }
 
 func main() {
-	encryptedKey := "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd"
-	passphrase := "Satoshi"
-	verifyPassphrase(encryptedKey, passphrase)
+	// what about unicode.PrintRanges?
+
+	printableAscii := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
+	numTried := 0
+
+	// assumes 3 characters, for http://www.reddit.com/r/Bitcoin/comments/1q5wu7/this_paper_wallet_contains_01125_btc_and_is_bip/
+	for _, rune1 := range printableAscii {
+		for _, rune2 := range printableAscii {
+			for _, rune3 := range printableAscii {
+				guess := string(rune1) + string(rune2) + string(rune3)
+
+				if verifyPassphrase("6PfYU8C5sLGsjDNWsCHRYD6G5noFmc184Q4owtnfvXrUdpsfNkeTq2HDV8", guess) {
+					return
+				}
+
+				if numTried%10 == 0 {
+					log.Printf("%d passphrases tried", numTried)
+				}
+
+				numTried++
+			}
+		}
+	}
 }
