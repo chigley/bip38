@@ -20,10 +20,7 @@ func sha256Twice(b []byte) []byte {
 	return h.Sum(nil)
 }
 
-func main() {
-	encryptedKey := "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd"
-	passphrase := "Satoshi"
-
+func verifyPassphrase(encryptedKey string, passphrase string) bool {
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
@@ -133,12 +130,20 @@ func main() {
 		addrHashed := sha256Twice([]byte(addr))
 
 		if addrHashed[0] != dec[3] || addrHashed[1] != dec[4] || addrHashed[2] != dec[5] || addrHashed[3] != dec[6] {
-			log.Fatal("Wrong passphrase!")
+			return false
 		}
 
 		log.Printf("Address: %s", addr)
 		log.Printf("Private key: %s", hex.EncodeToString(privKey.Bytes()))
-	} else {
-		log.Fatal("Malformed byte slice")
+		return true
 	}
+
+	log.Fatal("Malformed byte slice")
+	return false
+}
+
+func main() {
+	encryptedKey := "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd"
+	passphrase := "Satoshi"
+	verifyPassphrase(encryptedKey, passphrase)
 }
