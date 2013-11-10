@@ -114,11 +114,10 @@ func main() {
 		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
 		log.Printf("factorb: %s", hex.EncodeToString(factorb))
 
-		// passfactor * factorb mod N
-
-		bigN, _ := new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
-		// passFactorBig := btc.NewUint256(passFactor).BigInt()
-		// factorbBig := btc.NewUint256(factorb).BigInt()
+		bigN, success := new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
+		if !success {
+			log.Fatal("Failed to create Int for N")
+		}
 
 		passFactorBig := new(big.Int).SetBytes(passFactor)
 		factorbBig := new(big.Int).SetBytes(factorb)
