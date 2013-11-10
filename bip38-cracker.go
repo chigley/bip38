@@ -29,7 +29,8 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 	// log.Printf("Decoded base58 string to %s (length %d)", hex.EncodeToString(dec), len(dec))
 
 	if dec[0] == 0x01 && dec[1] == 0x42 {
-		log.Print("EC multiply mode not used")
+		// log.Print("EC multiply mode not used")
+
 		log.Fatal("TODO: implement decryption when EC multiply mode not used")
 	} else if dec[0] == 0x01 && dec[1] == 0x43 {
 		// log.Print("EC multiply mode used")
@@ -73,16 +74,12 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		encryptedpart1 := dec[15:23]
 		encryptedpart2 := dec[23:39]
 
-		addresshashplusownerentropy := bytes.Join([][]byte{dec[3:7], ownerSalt[:8]}, nil)
-
-		derived, err := scrypt.Key(passpoint, addresshashplusownerentropy, 1024, 1, 1, 64)
+		derived, err := scrypt.Key(passpoint, bytes.Join([][]byte{dec[3:7], ownerSalt[:8]}, nil), 1024, 1, 1, 64)
 		if derived == nil {
 			log.Fatal(err)
 		}
 
-		derivedhalf2 := derived[32:]
-
-		h, err := aes.NewCipher(derivedhalf2)
+		h, err := aes.NewCipher(derived[32:])
 		if h == nil {
 			log.Fatal(err)
 		}
