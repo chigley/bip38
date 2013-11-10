@@ -37,11 +37,21 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 	} else if dec[0] == 0x01 && dec[1] == 0x43 {
 		// log.Print("EC multiply mode used")
 
-		ownerSalt := dec[7:15]
+		compress := dec[2]&0x20 == 0x20
 		hasLotSequence := dec[2]&0x04 == 0x04
+
+		var ownerSalt, ownerEntropy []byte
+		if hasLotSequence {
+			ownerSalt = dec[7:11]
+			ownerEntropy = dec[7:15]
+		} else {
+			ownerSalt = dec[7:15]
+			ownerEntropy = ownerSalt
+		}
 
 		// log.Printf("Owner salt: %s", hex.EncodeToString(ownerSalt))
 		// log.Printf("Has lot/sequence: %t", hasLotSequence)
+		// log.Printf("Compress: %t", compress)
 
 		prefactorA, err := scrypt.Key([]byte(passphrase), ownerSalt, 16384, 8, 8, 32)
 		if prefactorA == nil {
@@ -51,15 +61,13 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		var passFactor []byte
 
 		if hasLotSequence {
-			prefactorB := bytes.Join([][]byte{prefactorA, ownerSalt}, nil)
+			// lotNumber := int(ownerSalt[4])*4096 + int(ownerSalt[5])*16 + int(ownerSalt[6])/16
+			// sequenceNumber := int(ownerSalt[6]&0x0f)*256 + int(ownerSalt[7])
+			// log.Printf("Lot number: %d", lotNumber)
+			// log.Printf("Sequence number: %d", sequenceNumber)
 
+			prefactorB := bytes.Join([][]byte{prefactorA, ownerEntropy}, nil)
 			passFactor = sha256Twice(prefactorB)
-
-			lotNumber := int(ownerSalt[4])*4096 + int(ownerSalt[5])*16 + int(ownerSalt[6])/16
-			sequenceNumber := int(ownerSalt[6]&0x0f)*256 + int(ownerSalt[7])
-
-			log.Printf("Lot number: %d", lotNumber)
-			log.Printf("Sequence number: %d", sequenceNumber)
 		} else {
 			passFactor = prefactorA
 		}
@@ -76,7 +84,7 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		encryptedpart1 := dec[15:23]
 		encryptedpart2 := dec[23:39]
 
-		derived, err := scrypt.Key(passpoint, bytes.Join([][]byte{dec[3:7], ownerSalt[:8]}, nil), 1024, 1, 1, 64)
+		derived, err := scrypt.Key(passpoint, bytes.Join([][]byte{dec[3:7], ownerEntropy}, nil), 1024, 1, 1, 64)
 		if derived == nil {
 			log.Fatal(err)
 		}
@@ -119,7 +127,7 @@ func verifyPassphrase(encryptedKey string, passphrase string) bool {
 		privKey.Mul(passFactorBig, factorbBig)
 		privKey.Mod(privKey, bigN)
 
-		pubKey, err := btc.PublicFromPrivate(privKey.Bytes(), false)
+		pubKey, err := btc.PublicFromPrivate(privKey.Bytes(), compress)
 		if pubKey == nil {
 			log.Fatal(err)
 		}
@@ -151,7 +159,7 @@ func searchRange(start int, finish int, encryptedKey string, charset string, c c
 				if start <= i {
 					guess := string(rune1) + string(rune2) + string(rune3)
 
-					log.Printf("Trying %s", guess)
+					// log.Printf("Trying %s", guess)
 					if verifyPassphrase(encryptedKey, guess) {
 						c <- "Found!"
 					}
@@ -193,8 +201,9 @@ func main() {
 		log.Fatal("length must be >= 1")
 	}
 
-	// charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
-	charset := "0123456789"
+	//charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
+	//charset := "0123456789"
+	charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 	spaceSize := int(math.Pow(float64(len(charset)), float64(length)))
 	blockSize := spaceSize / routines
