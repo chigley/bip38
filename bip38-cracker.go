@@ -108,8 +108,8 @@ func main() {
 
 		factorb := sha256Twice(seeddb)
 
-		log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
-		log.Printf("factorb: %s", hex.EncodeToString(factorb))
+		// log.Printf("passfactor: %s", hex.EncodeToString(passFactor))
+		// log.Printf("factorb: %s", hex.EncodeToString(factorb))
 
 		bigN, success := new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
 		if !success {
