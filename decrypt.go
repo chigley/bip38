@@ -1,4 +1,4 @@
-package main
+package bip38
 
 import (
 	"bytes"
@@ -6,10 +6,8 @@ import (
 	"crypto/aes"
 	"crypto/sha256"
 	"encoding/hex"
-	"flag"
 	"github.com/piotrnar/gocoin/btc"
 	"log"
-	"math"
 	"math/big"
 )
 
@@ -22,7 +20,7 @@ func sha256Twice(b []byte) []byte {
 	return h.Sum(nil)
 }
 
-func decryptWithPassphrase(encryptedKey string, passphrase string) string {
+func DecryptWithPassphrase(encryptedKey string, passphrase string) string {
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
@@ -121,80 +119,4 @@ func decryptWithPassphrase(encryptedKey string, passphrase string) string {
 
 	log.Fatal("Malformed byte slice")
 	return ""
-}
-
-var totalTried = 0
-
-func searchRange(start int, finish int, encryptedKey string, charset string, c chan string) {
-	i := 0
-	for _, rune1 := range charset {
-		for _, rune2 := range charset {
-			for _, rune3 := range charset {
-				if start <= i {
-					guess := string(rune1) + string(rune2) + string(rune3)
-
-					privKey := decryptWithPassphrase(encryptedKey, guess)
-					if privKey != "" {
-						c <- privKey + " (" + guess + ")"
-					}
-
-					if totalTried%10 == 0 {
-						log.Printf("%d passphrases tried", totalTried)
-					}
-
-					totalTried++
-				} else if i == finish {
-					return
-				}
-
-				i++
-			}
-		}
-	}
-}
-
-func main() {
-	var routines int
-	flag.IntVar(&routines, "routines", 1, "number of goroutines to spawn")
-	flag.Parse()
-
-	encryptedKey := flag.Arg(0)
-
-	length := 3 // Length of passphrase, hardcoded for now...
-
-	if encryptedKey == "" {
-		log.Fatal("encryptedKey required")
-	}
-
-	if routines < 1 {
-		log.Fatal("routines must be >= 1")
-	}
-
-	if length < 1 {
-		log.Fatal("length must be >= 1")
-	}
-
-	// Extended ASCII
-	//charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
-
-	// Printable ASCII
-	charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-	
-	spaceSize := int(math.Pow(float64(len(charset)), float64(length)))
-	blockSize := spaceSize / routines
-
-	c := make(chan string)
-
-	for i := 0; i < routines; i++ {
-		var finish int
-		if i == routines-1 {
-			// Last block needs to go right to the end of the search space
-			finish = spaceSize
-		} else {
-			finish = i*blockSize + blockSize
-		}
-		go searchRange(i*blockSize, finish, flag.Arg(0), charset, c)
-	}
-
-	log.Printf("%s", <-c)
 }
