@@ -11,17 +11,18 @@ I'm writing this primarily as an exercise to learn Go, and also to learn more ab
 TODO
 ----
 
-* Remove gocoin dependency (currently only used for base58 decoding, and passpoint & address calculation)
-* Catch panic case when all goroutines return without finding the passphrase (i.e. brute force failure)
-* Optimise searchRange when not starting at 0, and add in support for variable-length passphrases
 * Proper support for brute forcing over a given character set, rather than a hardcoded value
+* Support for variable-length passphrases, or to search a given length range
+* Catch panic case when all goroutines return without finding the passphrase (i.e. brute force failure)
 * Implement decryption when EC multiply mode not used (and write tests)
 * Add proper doc comments to code
+* Optimise searchRange when not starting at 0
+* Remove gocoin dependency (currently only used for base58 decoding, and passpoint & address calculation)
 
 Note about cracking
 -------------------
 
-The first argument to `Brute` is an integer number of goroutines to call while attempting the brute force search. For best results, set this to the number of cores you have available on your machine. Also make sure you set the `GOMAXPROCS` environment variable to this value before compiling! Otherwise your program will only run on a single core (by default), regardless of what you set `routines` to.
+The first argument to `Brute` is an `int` number of goroutines to call while attempting the brute force search. For best results, set this to the number of cores you have available on your machine. Also make sure you set the `GOMAXPROCS` environment variable to this value before compiling! Otherwise your program will only run on a single core (by default), regardless of what you set `routines` to.
 
 On my quad-core Intel i5-2500K, I get speeds of about 10 keys/second when brute forcing a 3 character passphrase over the printable ASCII characters.
 
