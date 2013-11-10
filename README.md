@@ -16,6 +16,8 @@ TODO
 * Write tests for BIP 0038 implementation at the very least
 * Catch panic case when all goroutines return without finding the passphrase
 * Optimise searchRange when not starting at 0, and add in support for variable-length passphrases
+* Implement decryption when EC multiply mode not used
+* Add usage instructions, and a note about GOMAXPROCS and the routines parameter
 
 See also
 --------
