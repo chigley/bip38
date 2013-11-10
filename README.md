@@ -6,13 +6,13 @@ Partial [BIP 0038](https://en.bitcoin.it/wiki/BIP_0038) implementation and crack
 * http://www.reddit.com/r/Bitcoin/comments/1q5wu7/this_paper_wallet_contains_01125_btc_and_is_bip/
 * https://bitcointalk.org/index.php?topic=128699.0
 
-I'm writing this primarily as an exercise to learn Go, and also to learn more about the inner workings of Bitcoin.
+I'm writing this primarily as an exercise to learn Go, and also to learn more about the inner workings of Bitcoin. In the future, I may extend this to be a full implementation of BIP 0038 (including encryption). It'd also be quite fun to experiment with making a distributed brute forcer.
 
 TODO
 ----
 
-* Proper support for brute forcing over a given character set, rather than a hardcoded value
-* Support for variable-length passphrases, or to search a given length range
+* Support for brute forcing over a given character set, rather than a hardcoded `charset` value
+* Support for variable-length passphrases, rather than a hardcoded `length` value of 3
 * Catch panic case when all goroutines return without finding the passphrase (i.e. brute force failure)
 * Implement decryption when EC multiply mode not used (and write tests)
 * Add proper doc comments to code
