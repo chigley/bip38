@@ -22,7 +22,7 @@ func sha256Twice(b []byte) []byte {
 	return h.Sum(nil)
 }
 
-func decryptWithPassphrase(encryptedKey string, passphrase string) bool {
+func decryptWithPassphrase(encryptedKey string, passphrase string) string {
 	dec := btc.Decodeb58(encryptedKey)[:39] // trim to length 39 (not sure why needed)
 	if dec == nil {
 		log.Fatal("Cannot decode base58 string " + encryptedKey)
@@ -113,17 +113,14 @@ func decryptWithPassphrase(encryptedKey string, passphrase string) bool {
 		addrHashed := sha256Twice([]byte(addr))
 
 		if addrHashed[0] != dec[3] || addrHashed[1] != dec[4] || addrHashed[2] != dec[5] || addrHashed[3] != dec[6] {
-			return false
+			return ""
 		}
 
-		log.Printf("Address: %s", addr)
-		log.Printf("Private key: %s", hex.EncodeToString(privKey.Bytes()))
-		log.Printf("Passphrase was: %s", passphrase)
-		return true
+		return hex.EncodeToString(privKey.Bytes())
 	}
 
 	log.Fatal("Malformed byte slice")
-	return false
+	return ""
 }
 
 var totalTried = 0
@@ -136,8 +133,9 @@ func searchRange(start int, finish int, encryptedKey string, charset string, c c
 				if start <= i {
 					guess := string(rune1) + string(rune2) + string(rune3)
 
-					if decryptWithPassphrase(encryptedKey, guess) {
-						c <- "Found!"
+					privKey := decryptWithPassphrase(encryptedKey, guess)
+					if privKey != "" {
+						c <- privKey + " (" + guess + ")"
 					}
 
 					if totalTried%10 == 0 {
@@ -178,8 +176,8 @@ func main() {
 
 	//charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
 	//charset := "0123456789"
-	charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-
+	//charset := " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+	charset := "ffFFuuUUkkKK"
 	spaceSize := int(math.Pow(float64(len(charset)), float64(length)))
 	blockSize := spaceSize / routines
 
@@ -196,5 +194,5 @@ func main() {
 		go searchRange(i*blockSize, finish, flag.Arg(0), charset, c)
 	}
 
-	<-c
+	log.Printf("%s", <-c)
 }
