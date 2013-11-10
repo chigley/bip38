@@ -14,6 +14,8 @@ TODO
 * Remove gocoin dependency (currently only used for base58 decoding and passpoint calculation)
 * Move to package of its own rather than being in main package
 * Write tests for BIP 0038 implementation at the very least
+* Catch panic case when all goroutines return without finding the passphrase
+* Optimise searchRange when not starting at 0, and add in support for variable-length passphrases
 
 See also
 --------
