@@ -2,11 +2,11 @@ package bip38
 
 import (
 	"bytes"
-	"code.google.com/p/go.crypto/scrypt"
 	"crypto/aes"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/piotrnar/gocoin/btc"
+	"github.com/piotrnar/gocoin/lib/btc"
+	"golang.org/x/crypto/scrypt"
 	"log"
 	"math/big"
 )
@@ -54,10 +54,7 @@ func DecryptWithPassphrase(encryptedKey string, passphrase string) string {
 			passFactor = prefactorA
 		}
 
-		passpoint, err := btc.PublicFromPrivate(passFactor, true)
-		if passpoint == nil {
-			log.Fatal(err)
-		}
+		passpoint := btc.PublicFromPrivate(passFactor, true)
 
 		encryptedpart1 := dec[15:23]
 		encryptedpart2 := dec[23:39]
@@ -101,10 +98,7 @@ func DecryptWithPassphrase(encryptedKey string, passphrase string) string {
 		privKey.Mul(passFactorBig, factorbBig)
 		privKey.Mod(privKey, bigN)
 
-		pubKey, err := btc.PublicFromPrivate(privKey.Bytes(), compress)
-		if pubKey == nil {
-			log.Fatal(err)
-		}
+		pubKey := btc.PublicFromPrivate(privKey.Bytes(), compress)
 
 		addr := btc.NewAddrFromPubkey(pubKey, 0).String()
 
